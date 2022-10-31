@@ -1,0 +1,27 @@
+#################################################################
+#       Packet Structure Definition File                        #
+#                                                               #
+#  Empty lines and lines starts with "#" are ignored            #
+#                                                               #
+# Format: NAME ID FIELD1-TYPE1 [FIELD2-TYPE2 ....]              #
+#                                                               #
+# Example: Consider following packet                            #
+#   struct __attribute__((__packed__)) some_pkt_t               #
+#   {                                                           #
+#       unsigned int arg1;                                      #
+#       int arg2;                                               #
+#       double arg3;                                            #
+#   };                                                          #
+#                                                               #
+# This packet will be defined as:                               #
+#  some_pkt_t 100 arg1-U32 arg2-I32 arg3-D                      #
+#                                                               #
+#################################################################
+
+
+
+oxygen_level 89 timestamp-U32 level-D other_data-I32
+
+system_state 88 arg1-I8 state2-I32 timestamp-U32
+
+sensor_data 80 data1-D data2-f data3-I32 timestamp-U32
