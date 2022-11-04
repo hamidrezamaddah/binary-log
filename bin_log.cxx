@@ -17,10 +17,6 @@ enum class state_t
     h1,
     h2,
     id,
-    sec,
-    size,
-    content,
-    checksum
 };
 
 struct pkt_t
@@ -77,7 +73,7 @@ uint8_t check_sum(uint8_t *buff, unsigned int len)
 
 int main(int argc, char **argv)
 {
-    std::ifstream fin("sample.bin", std::ios::binary); // open the file
+    std::ifstream fin("sample.bin", std::ios::binary); 
     fin.unsetf(std::ios::skipws);
     unsigned int file_size = get_file_size(fin);
     std::cout << "file size: " << file_size << "\n";
@@ -119,28 +115,12 @@ int main(int argc, char **argv)
 
         case state_t::id:
             pkt.id = buff[ptr++];
-            state = state_t::sec;
-            break;
-
-        case state_t::sec:
             pkt.seq = *reinterpret_cast<uint16_t *>(&buff[ptr]);
             ptr += 2;
-            state = state_t::size;
-            break;
-
-        case state_t::size:
             size = buff[ptr++];
-            state = state_t::content;
-            break;
-
-        case state_t::content:
             pkt.content.resize(size);
             pkt.content.assign(buff.data() + ptr, buff.data() + ptr + size);
             ptr += size;
-            state = state_t::checksum;
-            break;
-
-        case state_t::checksum:
             if (buff[ptr] == check_sum(&buff[ptr - (4 + size)], 4 + size))
             {
                 pkts.push_back(pkt);
@@ -152,7 +132,9 @@ int main(int argc, char **argv)
                 ptr -= (size + 5);
             }
             state = state_t::h1;
+
             break;
+
         }
     }
     print_pkts(pkts);
