@@ -95,6 +95,7 @@ std::vector<pkt_descriptor_t> parse_descriptor()
         }
         descriptors.push_back(descriptor);
     }
+    return descriptors;
 }
 
 struct pkt_t
