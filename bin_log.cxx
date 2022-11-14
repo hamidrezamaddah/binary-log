@@ -76,10 +76,19 @@ std::vector<pkt_descriptor_t> parse_descriptor()
     std::string line;
     while (std::getline(file, line))
     {
+        if(line.size() == 0 )
+        {
+            continue;
+        }
+        
         pkt_descriptor_t descriptor;
         std::istringstream iss(line);
         iss >> descriptor.name;
-        iss >> descriptor.id;
+        iss >> std::hex >> descriptor.id;
+        if(descriptor.name[0] == '#' || descriptor.name.size() == 0)
+        {
+            continue;
+        }
 
         while (true)
         {
@@ -106,30 +115,112 @@ struct pkt_t
     std::vector<uint8_t> content;
 };
 
-// void print_pkts(const std::vector<pkt_t> &pkts, std::vector<pkt_descriptor_t> descriptors)
-// {
-//     unsigned int num = 1;
-//     bool first = true;
-//     unsigned int init_sec;
-//     unsigned int num_lost = 0;
-//     for (auto &pkt : pkts)
-//     {
-//         std::cout << "PKT" << std::dec << num++ << " ID=" << std::hex << (int)pkt.id << " Seq=0x" << pkt.seq << " Content=" << pkt.content << "\n";
-//         if (first)
-//         {
-//             first = false;
-//         }
-//         else
-//         {
-//             if (pkt.seq != init_sec + 1)
-//             {
-//                 num_lost += (pkt.seq - init_sec - 1);
-//             }
-//         }
-//         init_sec = pkt.seq;
-//     }
-//     std::cout << "PktLoss=" << std::dec << num_lost;
-// }
+bool id_exist_in_descriptor(unsigned int id, std::vector<pkt_descriptor_t> descriptors)
+{
+    for (auto descriptor : descriptors)
+    {
+        if (descriptor.id == id)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void print_due_descriptor(const pkt_t &pkt, std::vector<pkt_descriptor_t> descriptors)
+{
+    unsigned int ptr = 0;
+    for (auto descriptor : descriptors)
+    {
+        if (descriptor.id == pkt.id)
+        {
+            std::cout << descriptor.name << " Seq=0x" << std::hex << pkt.seq;
+            for (auto param : descriptor.params)
+            {
+                std::cout << std::dec << " " << param.name << "=";
+                switch (param.type)
+                {
+                case U8:
+                    std::cout << static_cast<unsigned int>(pkt.content[ptr]);
+                    ptr++;
+                    break;
+                case I8:
+                    std::cout << static_cast<int>(pkt.content[ptr]);
+                    ptr++;
+                    break;
+                case U16:
+                    std::cout << *((uint16_t *)(&pkt.content[ptr]));
+                    ptr += 2;
+                    break;
+                case I16:
+                    std::cout << *((int16_t *)(&pkt.content[ptr]));
+                    ptr += 2;
+                    break;
+                case U32:
+                    std::cout << *((uint32_t *)(&pkt.content[ptr]));
+                    ptr += 4;
+                    break;
+                case I32:
+                    std::cout << *((int32_t *)(&pkt.content[ptr]));
+                    ptr += 4;
+                    break;
+                case D:
+                    std::cout << *((double *)(&pkt.content[ptr]));
+                    ptr += 8;
+                    break;
+                case F:
+                    std::cout << *((float *)(&pkt.content[ptr]));
+                    ptr += 4;
+                    break;
+                }
+            }
+        }
+    }
+    std::cout << "\n";
+}
+
+std::ostream &operator<<(std::ostream &os, const std::vector<uint8_t> &items)
+{
+    for (auto item : items)
+    {
+        os << (int)item;
+    }
+    return os;
+}
+
+void print_pkts(const std::vector<pkt_t> &pkts, std::vector<pkt_descriptor_t> descriptors)
+{
+    unsigned int num = 1;
+    bool first = true;
+    unsigned int init_sec;
+    unsigned int num_lost = 0;
+    for (auto &pkt : pkts)
+    {
+        if (id_exist_in_descriptor(pkt.id, descriptors))
+        {
+            print_due_descriptor(pkt, descriptors);
+        }
+        else
+        {
+
+            std::cout << "PKT" << std::dec << num++ << " ID=" << std::hex << (int)pkt.id << " Seq=0x" << pkt.seq << " Content=" << pkt.content << "\n";
+        }
+
+        if (first)
+        {
+            first = false;
+        }
+        else
+        {
+            if (pkt.seq != init_sec + 1)
+            {
+                num_lost += (pkt.seq - init_sec - 1);
+            }
+        }
+        init_sec = pkt.seq;
+    }
+    std::cout << "PktLoss=" << std::dec << num_lost;
+}
 
 long long int get_file_size(std::ifstream &fin)
 {
@@ -146,15 +237,6 @@ enum class state_t
     h2,
     id,
 };
-
-std::ostream &operator<<(std::ostream &os, const std::vector<uint8_t> &items)
-{
-    for (auto item : items)
-    {
-        os << (int)item;
-    }
-    return os;
-}
 
 void print_pkts(const std::vector<pkt_t> &pkts)
 {
@@ -256,6 +338,8 @@ int main(int argc, char **argv)
             break;
         }
     }
-    print_pkts(pkts);
+
+    auto desc = parse_descriptor();
+    print_pkts(pkts, desc);
     std::cout << " PktCorrupt=" << pkt_corrupt << "\n";
 }
